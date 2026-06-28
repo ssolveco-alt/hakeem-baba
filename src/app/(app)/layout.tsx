@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { requireUser } from "@/lib/auth";
 import { AppShell, type NavItem } from "@/components/app-shell";
+import { OfflineProvider } from "@/lib/offline/provider";
 
 const navItems: NavItem[] = [
   { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
@@ -39,13 +40,22 @@ export default async function AppLayout({
       : navItems;
 
   return (
-    <AppShell
-      navItems={items}
-      user={{ name: user.name, role: user.role }}
-      brand={user.clinic_name || "HakeemCare"}
-      logoUrl={user.clinic_logo}
+    <OfflineProvider
+      session={{
+        userId: user.id,
+        clinicId: user.clinic_id,
+        role: user.role,
+        name: user.name,
+      }}
     >
-      {children}
-    </AppShell>
+      <AppShell
+        navItems={items}
+        user={{ name: user.name, role: user.role }}
+        brand={user.clinic_name || "HakeemCare"}
+        logoUrl={user.clinic_logo}
+      >
+        {children}
+      </AppShell>
+    </OfflineProvider>
   );
 }

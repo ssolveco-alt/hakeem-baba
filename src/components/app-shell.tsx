@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/sign-out-button";
+import { SyncIndicator } from "@/components/sync-indicator";
 
 export interface NavItem {
   href: string;
@@ -64,6 +65,7 @@ export function AppShell({
           </span>
         </Link>
         <div className="flex items-center gap-3">
+          <SyncIndicator />
           <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold leading-tight">{user.name || "User"}</p>
             <p className="text-xs capitalize text-muted-foreground">
