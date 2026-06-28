@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: 0 0% 100%;
+  --foreground: 160 30% 12%;
+  --card: 0 0% 100%;
+  --card-foreground: 160 30% 12%;
+  --primary: 152 60% 36%;            /* HakeemCare green */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 152 30% 95%;
+  --secondary-foreground: 152 60% 24%;
+  --muted: 150 16% 96%;
+  --muted-foreground: 160 12% 42%;
+  --accent: 152 40% 92%;
+  --accent-foreground: 152 60% 24%;
+  --destructive: 0 72% 48%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 150 16% 88%;
+  --input: 150 16% 86%;
+  --ring: 152 60% 36%;
+  --radius: 0.75rem;
+}
+
+* {
+  border-color: hsl(var(--border));
+}
+
+body {
+  background-color: hsl(var(--background));
+  color: hsl(var(--foreground));
+  font-size: 1.0625rem;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Comfortable, large touch targets for low-tech-literacy users */
+@layer base {
+  h1 { @apply text-2xl font-bold tracking-tight; }
+  h2 { @apply text-xl font-semibold; }
+}
