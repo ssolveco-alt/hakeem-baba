@@ -14,9 +14,13 @@ export type SessionUser = AppUser & {
 // reuse a single result instead of re-querying Supabase each time.
 const loadUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createClient();
+  // getSession() reads the user id from the cookie locally (no network call).
+  // The profile query below runs under RLS, which validates the JWT at the
+  // database, so trusting the cookie's user id here is safe.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user;
   if (!user) return null;
 
   const { data: profile } = await supabase

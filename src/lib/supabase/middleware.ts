@@ -29,9 +29,14 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // getSession() reads/refreshes the session from the cookie locally (no network
+  // round-trip on most requests), unlike getUser() which always calls the auth
+  // server. The gate below only decides login-vs-redirect; real data access is
+  // still protected by Postgres RLS, so this is safe and much faster.
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { session },
+  } = await supabase.auth.getSession();
+  const user = session?.user ?? null;
 
   const path = request.nextUrl.pathname;
   const isPublic = PUBLIC_PATHS.some((p) => path.startsWith(p));

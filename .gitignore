@@ -15,3 +15,6 @@ next-env.d.ts
 *.pem
 npm-debug.log*
 .vercel
+
+# local migration backup (contains data)
+/backup/
