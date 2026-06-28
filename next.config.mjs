@@ -1,7 +1,15 @@
 /** @type {import('next').NextConfig} */
-const supabaseHost = process.env.NEXT_PUBLIC_SUPABASE_URL
-  ? new URL(process.env.NEXT_PUBLIC_SUPABASE_URL).hostname
-  : "*.supabase.co";
+// Never let a missing/malformed env var crash the build.
+function resolveSupabaseHost() {
+  const raw = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim().replace(/^['"]|['"]$/g, "");
+  if (!raw) return "*.supabase.co";
+  try {
+    return new URL(raw).hostname;
+  } catch {
+    return "*.supabase.co";
+  }
+}
+const supabaseHost = resolveSupabaseHost();
 
 const nextConfig = {
   images: {

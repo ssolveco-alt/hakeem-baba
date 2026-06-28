@@ -4,7 +4,11 @@
       "PowerShell(npm install -D tsx fake-indexeddb --no-audit --no-fund 2>&1)",
       "Bash(npx tsx *)",
       "Bash(grep -vE \"dev-mode|RxDB Premium|Hint:|premium|disableWarnings|^----|^$|seeing this|great in|that you use|you did something|professional\")",
-      "Bash(grep -vE \"dev-mode|Premium|Hint:|premium|disableWarnings|^----|^$|seeing this|great in|that you use|you did something|professional|free Dexie\")"
+      "Bash(grep -vE \"dev-mode|Premium|Hint:|premium|disableWarnings|^----|^$|seeing this|great in|that you use|you did something|professional|free Dexie\")",
+      "Bash(git check-ignore *)",
+      "Bash(git remote *)",
+      "Bash(git branch *)",
+      "Bash(git push *)"
     ]
   }
 }
