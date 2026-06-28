@@ -2,7 +2,7 @@
 // HMR / re-renders don't try to create the same DB twice.
 import { createRxDatabase, addRxPlugin, type RxDatabase } from "rxdb";
 import { getRxStorageDexie } from "rxdb/plugins/storage-dexie";
-import { COLLECTIONS } from "./schemas";
+import { COLLECTIONS, LOCAL_COLLECTIONS } from "./schemas";
 
 let dbPromise: Promise<RxDatabase> | null = null;
 
@@ -29,9 +29,10 @@ export function getDatabase(): Promise<RxDatabase> {
       ignoreDuplicate: isDev,
     });
 
-    await db.addCollections(
-      Object.fromEntries(COLLECTIONS.map((c) => [c.name, { schema: c.schema }]))
-    );
+    await db.addCollections({
+      ...Object.fromEntries(COLLECTIONS.map((c) => [c.name, { schema: c.schema }])),
+      ...LOCAL_COLLECTIONS,
+    });
 
     return db;
   })();

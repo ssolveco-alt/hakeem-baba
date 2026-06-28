@@ -1,12 +1,11 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import Image from "next/image";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Search, Check, User, FileText } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { Save, ArrowLeft, Search, Check, User, FileText, Loader2 } from "lucide-react";
 import type { Patient, Nuskha } from "@/lib/types";
+import { useDB, useSession, useRxData } from "@/lib/offline/provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -15,50 +14,105 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
 import { ImageUpload } from "@/components/image-upload";
-import { createVisit } from "./actions";
+import { OfflineImage } from "@/components/offline-image";
 
-export function VisitForm({
-  clinicId,
-  nuskhas,
-  preselected,
-}: {
-  clinicId: string;
-  nuskhas: Nuskha[];
-  preselected?: Patient | null;
-}) {
+export function VisitForm({ preselectedId }: { preselectedId?: string }) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
+  const db = useDB();
+  const session = useSession();
 
-  const [patient, setPatient] = useState<Patient | null>(preselected ?? null);
-  const [selectedNuskhas, setSelectedNuskhas] = useState<Set<string>>(new Set());
+  const { data: patients } = useRxData<Patient>("patients", (c) => c.find());
+  const { data: nuskhas } = useRxData<Nuskha>("nuskhas", (c) => c.find());
 
-  function toggleNuskha(id: string) {
-    setSelectedNuskhas((prev) => {
+  const [patientId, setPatientId] = useState<string | null>(preselectedId ?? null);
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [newImage, setNewImage] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  const patient = patients.find((p) => p.id === patientId) ?? null;
+  const activeNuskhas = useMemo(() => nuskhas.filter((n) => n.status === "active"), [nuskhas]);
+
+  const matches = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    if (!q) return patients.slice(0, 8);
+    return patients
+      .filter((p) => p.name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q))
+      .slice(0, 8);
+  }, [patients, query]);
+
+  function toggle(id: string) {
+    setSelected((prev) => {
       const next = new Set(prev);
       next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   }
 
-  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+  async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
-    if (!patient) {
-      toast.error("Please choose a patient first");
-      return;
-    }
-    const formData = new FormData(e.currentTarget);
-    formData.set("patient_id", patient.id);
-    selectedNuskhas.forEach((id) => formData.append("nuskha_ids", id));
+    if (!db) return toast.error("Still loading — try again");
+    if (!patient) return toast.error("Please choose a patient first");
 
-    startTransition(async () => {
-      try {
-        await createVisit(formData);
-        toast.success("Visit saved");
-      } catch (err) {
-        if (err instanceof Error && err.message === "NEXT_REDIRECT") throw err;
-        toast.error(err instanceof Error ? err.message : "Could not save visit");
+    const fd = new FormData(e.currentTarget);
+    const str = (k: string) => {
+      const v = (fd.get(k) ?? "").toString().trim();
+      return v.length ? v : null;
+    };
+    const feeRaw = str("fee");
+
+    setSaving(true);
+    try {
+      const now = new Date().toISOString();
+      const visitId = crypto.randomUUID();
+      await db.visits.insert({
+        id: visitId,
+        clinic_id: session.clinicId,
+        patient_id: patient.id,
+        visit_date: str("visit_date") ?? now.slice(0, 10),
+        disease: str("disease"),
+        symptoms: str("symptoms"),
+        notes: str("notes"),
+        fee: feeRaw ? Number(feeRaw) : 0,
+        created_by: session.userId,
+        created_at: now,
+        updated_at: now,
+      });
+
+      const nuskhaIds = new Set(selected);
+      if (newImage) {
+        const nid = crypto.randomUUID();
+        await db.nuskhas.insert({
+          id: nid,
+          clinic_id: session.clinicId,
+          name: str("disease") || "Visit Nuskha",
+          category: "General",
+          description: null,
+          image_url: newImage,
+          notes: null,
+          status: "active",
+          created_at: now,
+          updated_at: now,
+        });
+        nuskhaIds.add(nid);
       }
-    });
+      for (const nid of nuskhaIds) {
+        await db.visit_nuskhas.insert({
+          id: crypto.randomUUID(),
+          clinic_id: session.clinicId,
+          visit_id: visitId,
+          nuskha_id: nid,
+          updated_at: now,
+        });
+      }
+
+      toast.success("Visit saved");
+      router.push(`/patients/${patient.id}`);
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : "Could not save visit");
+    } finally {
+      setSaving(false);
+    }
   }
 
   const today = new Date().toISOString().slice(0, 10);
@@ -80,14 +134,29 @@ export function VisitForm({
                     <p className="text-sm text-muted-foreground">{patient.phone}</p>
                   </div>
                 </div>
-                {!preselected && (
-                  <Button type="button" variant="ghost" size="sm" onClick={() => setPatient(null)}>
+                {!preselectedId && (
+                  <Button type="button" variant="ghost" size="sm" onClick={() => setPatientId(null)}>
                     Change
                   </Button>
                 )}
               </div>
             ) : (
-              <PatientPicker onPick={setPatient} />
+              <div className="space-y-2">
+                <div className="relative">
+                  <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="pl-12" placeholder="Search patient by name or phone…" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
+                </div>
+                {matches.length > 0 && (
+                  <div className="divide-y rounded-lg border">
+                    {matches.map((p) => (
+                      <button type="button" key={p.id} onClick={() => setPatientId(p.id)} className="flex w-full items-center justify-between p-3 text-left hover:bg-accent">
+                        <span className="font-medium">{p.name}</span>
+                        <span className="text-sm text-muted-foreground">{p.phone}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
           </Field>
         </CardContent>
@@ -121,33 +190,17 @@ export function VisitForm({
         <CardContent className="space-y-4 pt-6">
           <div>
             <h2 className="text-lg font-semibold">Assign Nuskha</h2>
-            <p className="text-sm text-muted-foreground">
-              Choose existing nuskhas and/or upload a new one for this visit.
-            </p>
+            <p className="text-sm text-muted-foreground">Choose existing nuskhas, and/or upload a new one (needs internet).</p>
           </div>
 
-          {nuskhas.length > 0 && (
+          {activeNuskhas.length > 0 && (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {nuskhas.map((n) => {
-                const active = selectedNuskhas.has(n.id);
+              {activeNuskhas.map((n) => {
+                const active = selected.has(n.id);
                 return (
-                  <button
-                    type="button"
-                    key={n.id}
-                    onClick={() => toggleNuskha(n.id)}
-                    className={cn(
-                      "relative flex items-center gap-2 rounded-lg border-2 p-2 text-left transition-colors",
-                      active ? "border-primary bg-accent" : "border-input hover:border-primary"
-                    )}
-                  >
+                  <button type="button" key={n.id} onClick={() => toggle(n.id)} className={cn("relative flex items-center gap-2 rounded-lg border-2 p-2 text-left transition-colors", active ? "border-primary bg-accent" : "border-input hover:border-primary")}>
                     {n.image_url ? (
-                      <Image
-                        src={n.image_url}
-                        alt={n.name}
-                        width={40}
-                        height={40}
-                        className="h-10 w-10 rounded-md object-cover"
-                      />
+                      <OfflineImage src={n.image_url} alt={n.name} className="h-10 w-10 rounded-md object-cover" />
                     ) : (
                       <span className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary">
                         <FileText className="h-5 w-5 text-primary" />
@@ -162,75 +215,21 @@ export function VisitForm({
           )}
 
           <Field label="Or upload a new nuskha image">
-            <ImageUpload name="new_nuskha_image" bucket="nuskha-images" clinicId={clinicId} />
+            <ImageUpload bucket="nuskha-images" clinicId={session.clinicId} onUploaded={setNewImage} />
           </Field>
 
-          {selectedNuskhas.size > 0 && (
-            <Badge variant="success">{selectedNuskhas.size} nuskha(s) selected</Badge>
-          )}
+          {selected.size > 0 && <Badge variant="success">{selected.size} nuskha(s) selected</Badge>}
         </CardContent>
       </Card>
 
       <div className="flex gap-3">
-        <Button type="submit" size="lg" disabled={pending}>
-          <Save /> {pending ? "Saving…" : "Save Visit"}
+        <Button type="submit" size="lg" disabled={saving}>
+          {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? "Saving…" : "Save Visit"}
         </Button>
         <Button type="button" variant="outline" size="lg" onClick={() => router.back()}>
           <ArrowLeft /> Cancel
         </Button>
       </div>
     </form>
-  );
-}
-
-function PatientPicker({ onPick }: { onPick: (p: Patient) => void }) {
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<Patient[]>([]);
-
-  useEffect(() => {
-    const handle = setTimeout(async () => {
-      const supabase = createClient();
-      let request = supabase
-        .from("patients")
-        .select("*")
-        .is("deleted_at", null)
-        .order("created_at", { ascending: false })
-        .limit(8);
-      const q = query.trim();
-      if (q) request = request.or(`name.ilike.%${q}%,phone.ilike.%${q}%,patient_code.ilike.%${q}%`);
-      const { data } = await request;
-      setResults((data as Patient[]) ?? []);
-    }, 200);
-    return () => clearTimeout(handle);
-  }, [query]);
-
-  return (
-    <div className="space-y-2">
-      <div className="relative">
-        <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-        <Input
-          className="pl-12"
-          placeholder="Search patient by name or phone…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          autoFocus
-        />
-      </div>
-      {results.length > 0 && (
-        <div className="divide-y rounded-lg border">
-          {results.map((p) => (
-            <button
-              type="button"
-              key={p.id}
-              onClick={() => onPick(p)}
-              className="flex w-full items-center justify-between p-3 text-left hover:bg-accent"
-            >
-              <span className="font-medium">{p.name}</span>
-              <span className="text-sm text-muted-foreground">{p.phone}</span>
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
   );
 }

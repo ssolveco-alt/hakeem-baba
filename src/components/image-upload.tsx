@@ -1,71 +1,76 @@
 "use client";
 
 import { useRef, useState } from "react";
-import Image from "next/image";
 import { toast } from "sonner";
 import { UploadCloud, X, Loader2 } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
+import { useDB } from "@/lib/offline/provider";
+import { queueImage, flushPendingUploads } from "@/lib/offline/images";
 import { cn } from "@/lib/utils";
 
-// Uploads an image to a Supabase Storage bucket and exposes the public URL via
-// a hidden input (so it submits with the parent <form>). Preview + drag & drop.
+// Captures an image into the local offline queue and reports the final public
+// URL via onUploaded. The bytes upload to Supabase Storage automatically when
+// online. Works fully offline (preview comes from the locally-stored copy).
 export function ImageUpload({
   name,
   bucket,
   clinicId,
   defaultUrl,
+  onUploaded,
 }: {
-  name: string;
+  name?: string;
   bucket: string;
   clinicId: string;
   defaultUrl?: string | null;
+  onUploaded?: (url: string | null) => void;
 }) {
+  const db = useDB();
   const [url, setUrl] = useState<string | null>(defaultUrl ?? null);
-  const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(defaultUrl ?? null);
+  const [busy, setBusy] = useState(false);
   const [dragOver, setDragOver] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  async function upload(file: File) {
+  async function handle(file: File) {
     if (!file.type.startsWith("image/")) {
       toast.error("Please choose an image file");
       return;
     }
-    setUploading(true);
-    const supabase = createClient();
-    const ext = file.name.split(".").pop() || "jpg";
-    const path = `${clinicId}/${crypto.randomUUID()}.${ext}`;
-
-    const { error } = await supabase.storage.from(bucket).upload(path, file, {
-      cacheControl: "3600",
-      upsert: false,
-    });
-    setUploading(false);
-
-    if (error) {
-      toast.error(error.message);
+    if (!db) {
+      toast.error("Still loading — try again");
       return;
     }
-    const { data } = supabase.storage.from(bucket).getPublicUrl(path);
-    setUrl(data.publicUrl);
-    toast.success("Image uploaded");
+    setBusy(true);
+    try {
+      const { url: publicUrl, dataUrl } = await queueImage(db, bucket, clinicId, file);
+      setUrl(publicUrl);
+      setPreview(dataUrl);
+      onUploaded?.(publicUrl);
+      flushPendingUploads(db).catch(() => {}); // upload now if online
+      toast.success(navigator.onLine ? "Image added" : "Image saved offline");
+    } catch {
+      toast.error("Could not process image");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  function clear() {
+    setUrl(null);
+    setPreview(null);
+    onUploaded?.(null);
   }
 
   return (
     <div>
-      <input type="hidden" name={name} value={url ?? ""} />
+      {name && <input type="hidden" name={name} value={url ?? ""} />}
 
-      {url ? (
+      {preview ? (
         <div className="relative inline-block">
-          <Image
-            src={url}
-            alt="Preview"
-            width={240}
-            height={240}
-            className="h-48 w-48 rounded-lg border object-cover"
-          />
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={preview} alt="Preview" className="h-48 w-48 rounded-lg border object-cover" />
           <button
             type="button"
-            onClick={() => setUrl(null)}
+            onClick={clear}
             className="absolute -right-2 -top-2 flex h-8 w-8 items-center justify-center rounded-full bg-destructive text-destructive-foreground shadow"
             aria-label="Remove image"
           >
@@ -85,23 +90,23 @@ export function ImageUpload({
             e.preventDefault();
             setDragOver(false);
             const file = e.dataTransfer.files?.[0];
-            if (file) upload(file);
+            if (file) handle(file);
           }}
           className={cn(
             "flex h-48 w-full max-w-sm flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed text-muted-foreground transition-colors hover:border-primary hover:bg-accent",
             dragOver && "border-primary bg-accent"
           )}
         >
-          {uploading ? (
+          {busy ? (
             <>
               <Loader2 className="h-8 w-8 animate-spin" />
-              <span>Uploading…</span>
+              <span>Processing…</span>
             </>
           ) : (
             <>
               <UploadCloud className="h-8 w-8" />
-              <span className="font-medium">Tap to upload or drag an image</span>
-              <span className="text-sm">JPG / PNG</span>
+              <span className="font-medium">Tap to add or drag an image</span>
+              <span className="text-sm">Works offline</span>
             </>
           )}
         </button>
@@ -115,7 +120,7 @@ export function ImageUpload({
         className="hidden"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) upload(file);
+          if (file) handle(file);
         }}
       />
     </div>

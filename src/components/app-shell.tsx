@@ -6,6 +6,7 @@ import { Leaf } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/sign-out-button";
 import { SyncIndicator } from "@/components/sync-indicator";
+import { OfflineImage } from "@/components/offline-image";
 
 export interface NavItem {
   href: string;
@@ -49,12 +50,7 @@ export function AppShell({
       <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b bg-background/80 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <Link href="/" className="flex items-center gap-2.5">
           {logoUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={logoUrl}
-              alt={brand}
-              className="h-9 w-9 rounded-xl object-cover shadow-sm"
-            />
+            <OfflineImage src={logoUrl} alt={brand} className="h-9 w-9 rounded-xl object-cover shadow-sm" />
           ) : (
             <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-primary to-emerald-600 text-primary-foreground shadow-sm">
               <Leaf className="h-5 w-5" />

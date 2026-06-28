@@ -10,6 +10,7 @@ import {
 import type { RxDatabase } from "rxdb";
 import { getDatabase } from "./database";
 import { startReplication } from "./replication";
+import { flushPendingUploads } from "./images";
 
 export interface ClientSession {
   userId: string;
@@ -54,7 +55,11 @@ export function OfflineProvider({
     const subs: { unsubscribe: () => void }[] = [];
 
     setOnline(navigator.onLine);
-    const goOnline = () => setOnline(true);
+    const goOnline = () => {
+      setOnline(true);
+      // Push any images captured while offline.
+      getDatabase().then(flushPendingUploads).catch(() => {});
+    };
     const goOffline = () => setOnline(false);
     window.addEventListener("online", goOnline);
     window.addEventListener("offline", goOffline);
@@ -67,6 +72,7 @@ export function OfflineProvider({
         setReady(true);
 
         const states = startReplication(database);
+        flushPendingUploads(database).catch(() => {}); // upload anything left from last session
         for (const st of states) {
           subs.push(
             st.active$.subscribe((active: boolean) =>

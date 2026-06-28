@@ -120,6 +120,26 @@ const settingsSchema: RxJsonSchema<any> = {
   required: ["id", "clinic_id", "updated_at"],
 };
 
+// Local-only collection (NOT replicated to Supabase). Holds image bytes captured
+// offline, waiting to be uploaded to Supabase Storage when back online.
+export const pendingUploadsSchema: RxJsonSchema<any> = {
+  version: 0,
+  primaryKey: "id",
+  type: "object",
+  properties: {
+    id: { type: "string", maxLength: 64 },
+    bucket: { type: "string" },
+    path: { type: "string" },
+    url: { type: "string" },          // deterministic public URL the record points at
+    data: { type: "string" },         // data: URL (base64) of the (downscaled) image
+    content_type: { type: "string" },
+    created_at: { type: "string" },
+  },
+  required: ["id", "bucket", "path", "url", "data", "created_at"],
+};
+
+export const LOCAL_COLLECTIONS = { pending_uploads: { schema: pendingUploadsSchema } };
+
 export const COLLECTIONS: CollectionConfig[] = [
   {
     name: "patients",

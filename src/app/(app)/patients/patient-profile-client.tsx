@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ConfirmDelete } from "@/components/confirm-delete";
+import { OfflineImage } from "@/components/offline-image";
 
 export function PatientProfileClient({ id }: { id: string }) {
   const router = useRouter();
@@ -133,8 +134,7 @@ export function PatientProfileClient({ id }: { id: string }) {
                         {vn.map((n) => (
                           <Link key={n.id} href={`/nuskhas/${n.id}`} className="flex items-center gap-2 rounded-lg border p-2 hover:border-primary">
                             {n.image_url ? (
-                              // eslint-disable-next-line @next/next/no-img-element
-                              <img src={n.image_url} alt={n.name} className="h-12 w-12 rounded-md object-cover" />
+                              <OfflineImage src={n.image_url} alt={n.name} className="h-12 w-12 rounded-md object-cover" />
                             ) : (
                               <span className="flex h-12 w-12 items-center justify-center rounded-md bg-secondary">
                                 <FileText className="h-5 w-5 text-primary" />
