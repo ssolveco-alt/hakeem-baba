@@ -64,7 +64,7 @@ export function NuskhasClient() {
             <CardContent className="py-12 text-center text-muted-foreground">No nuskhas found.</CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
             {results.map((n) => (
               <Link key={n.id} href={`/nuskhas/${n.id}`}>
                 <Card className="overflow-hidden transition-colors hover:border-primary">
