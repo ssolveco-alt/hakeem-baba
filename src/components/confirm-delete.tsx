@@ -11,10 +11,12 @@ export function ConfirmDelete({
   action,
   label = "Delete",
   message = "This cannot be undone. Are you sure?",
+  iconOnly = false,
 }: {
   action: () => Promise<void>;
   label?: string;
   message?: string;
+  iconOnly?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
@@ -32,9 +34,15 @@ export function ConfirmDelete({
 
   return (
     <>
-      <Button variant="destructive" size="lg" onClick={() => setOpen(true)}>
-        <Trash2 /> {label}
-      </Button>
+      {iconOnly ? (
+        <Button variant="ghost" size="icon" onClick={() => setOpen(true)} aria-label={label}>
+          <Trash2 className="h-4 w-4 text-destructive" />
+        </Button>
+      ) : (
+        <Button variant="destructive" size="lg" onClick={() => setOpen(true)}>
+          <Trash2 /> {label}
+        </Button>
+      )}
 
       {open && (
         <div

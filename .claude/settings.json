@@ -8,7 +8,15 @@
       "Bash(git check-ignore *)",
       "Bash(git remote *)",
       "Bash(git branch *)",
-      "Bash(git push *)"
+      "Bash(git push *)",
+      "PowerShell(npm install next@15 eslint-config-next@15 --no-audit --no-fund 2>&1)",
+      "PowerShell(node -p \"require\\('next/package.json'\\).version\")",
+      "Bash(git add *)",
+      "Bash(git commit -m 'fix: exclude manifest, service worker & icons from auth middleware *)",
+      "Bash(git commit -m 'fix: cap content width so list rows don'\\\\''t over-stretch on wide screens *)",
+      "Bash(git commit -m 'feat: create a new Nuskha inline \\(modal\\) during a visit, auto-selected; searchable nuskha picker *)",
+      "Bash(git commit -m 'feat: server-side pagination + search for admin clinics \\(scales to large datasets\\) *)",
+      "Bash(git commit -m 'fix: full-width dashboard, edit/delete visits, looser visit spacing *)"
     ]
   }
 }

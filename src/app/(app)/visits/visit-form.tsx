@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Save, ArrowLeft, Search, Check, User, FileText, Loader2, Plus } from "lucide-react";
-import type { Patient, Nuskha } from "@/lib/types";
+import type { Patient, Nuskha, Visit } from "@/lib/types";
 import { useDB, useSession, useRxData } from "@/lib/offline/provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -17,17 +17,27 @@ import { OfflineImage } from "@/components/offline-image";
 import { Modal } from "@/components/ui/modal";
 import { NuskhaQuickCreate } from "./nuskha-quick-create";
 
-export function VisitForm({ preselectedId }: { preselectedId?: string }) {
+export function VisitForm({
+  preselectedId,
+  visit,
+  existingNuskhaIds,
+}: {
+  preselectedId?: string;
+  visit?: Visit;
+  existingNuskhaIds?: string[];
+}) {
   const router = useRouter();
   const db = useDB();
   const session = useSession();
+  const isEdit = !!visit;
+  const lockedPatient = !!preselectedId || isEdit;
 
   const { data: patients } = useRxData<Patient>("patients", (c) => c.find());
   const { data: nuskhas } = useRxData<Nuskha>("nuskhas", (c) => c.find());
 
-  const [patientId, setPatientId] = useState<string | null>(preselectedId ?? null);
+  const [patientId, setPatientId] = useState<string | null>(visit?.patient_id ?? preselectedId ?? null);
   const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [selected, setSelected] = useState<Set<string>>(new Set(existingNuskhaIds ?? []));
   const [saving, setSaving] = useState(false);
   const [showCreate, setShowCreate] = useState(false);
   const [nuskhaQuery, setNuskhaQuery] = useState("");
@@ -78,30 +88,48 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
     setSaving(true);
     try {
       const now = new Date().toISOString();
-      const visitId = crypto.randomUUID();
-      await db.visits.insert({
-        id: visitId,
-        clinic_id: session.clinicId,
-        patient_id: patient.id,
+      const fields = {
         visit_date: str("visit_date") ?? now.slice(0, 10),
         disease: str("disease"),
         symptoms: str("symptoms"),
         notes: str("notes"),
         fee: feeRaw ? Number(feeRaw) : 0,
-        created_by: session.userId,
-        created_at: now,
-        updated_at: now,
-      });
+      };
 
-      const nuskhaIds = new Set(selected);
-      for (const nid of nuskhaIds) {
-        await db.visit_nuskhas.insert({
-          id: crypto.randomUUID(),
+      const visitId = visit?.id ?? crypto.randomUUID();
+      if (isEdit) {
+        const doc = await db.visits.findOne(visitId).exec();
+        if (!doc) throw new Error("Visit not found locally");
+        await doc.patch({ ...fields, updated_at: now });
+      } else {
+        await db.visits.insert({
+          id: visitId,
           clinic_id: session.clinicId,
-          visit_id: visitId,
-          nuskha_id: nid,
+          patient_id: patient.id,
+          ...fields,
+          created_by: session.userId,
+          created_at: now,
           updated_at: now,
         });
+      }
+
+      // Reconcile assigned nuskhas (add new, remove deselected).
+      const allLinks = await db.visit_nuskhas.find().exec();
+      const current = allLinks.filter((l: any) => l.visit_id === visitId);
+      const currentIds = new Set(current.map((l: any) => l.nuskha_id));
+      for (const nid of selected) {
+        if (!currentIds.has(nid)) {
+          await db.visit_nuskhas.insert({
+            id: crypto.randomUUID(),
+            clinic_id: session.clinicId,
+            visit_id: visitId,
+            nuskha_id: nid,
+            updated_at: now,
+          });
+        }
+      }
+      for (const l of current) {
+        if (!selected.has(l.nuskha_id)) await l.remove();
       }
 
       toast.success("Visit saved");
@@ -133,7 +161,7 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
                     <p className="text-sm text-muted-foreground">{patient.phone}</p>
                   </div>
                 </div>
-                {!preselectedId && (
+                {!lockedPatient && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setPatientId(null)}>
                     Change
                   </Button>
@@ -166,20 +194,20 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
         <CardContent className="space-y-5 pt-6">
           <div className="grid gap-5 sm:grid-cols-2">
             <Field label="Visit Date" htmlFor="visit_date">
-              <Input id="visit_date" name="visit_date" type="date" defaultValue={today} />
+              <Input id="visit_date" name="visit_date" type="date" defaultValue={visit?.visit_date ?? today} />
             </Field>
             <Field label="Fee" htmlFor="fee">
-              <Input id="fee" name="fee" type="number" min={0} step="1" placeholder="0" />
+              <Input id="fee" name="fee" type="number" min={0} step="1" placeholder="0" defaultValue={visit?.fee ?? ""} />
             </Field>
           </div>
           <Field label="Disease" htmlFor="disease">
-            <Input id="disease" name="disease" placeholder="e.g. Joint pain" />
+            <Input id="disease" name="disease" placeholder="e.g. Joint pain" defaultValue={visit?.disease ?? ""} />
           </Field>
           <Field label="Symptoms" htmlFor="symptoms">
-            <Textarea id="symptoms" name="symptoms" />
+            <Textarea id="symptoms" name="symptoms" defaultValue={visit?.symptoms ?? ""} />
           </Field>
           <Field label="Notes" htmlFor="notes">
-            <Textarea id="notes" name="notes" />
+            <Textarea id="notes" name="notes" defaultValue={visit?.notes ?? ""} />
           </Field>
         </CardContent>
       </Card>
@@ -235,7 +263,7 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
 
       <div className="flex gap-3">
         <Button type="submit" size="lg" disabled={saving}>
-          {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? "Saving…" : "Save Visit"}
+          {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? "Saving…" : isEdit ? "Update Visit" : "Save Visit"}
         </Button>
         <Button type="button" variant="outline" size="lg" onClick={() => router.back()}>
           <ArrowLeft /> Cancel

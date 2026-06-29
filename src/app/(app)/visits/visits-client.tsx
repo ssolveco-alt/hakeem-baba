@@ -23,7 +23,7 @@ export function VisitsClient() {
   }, [visits, patients]);
 
   return (
-    <div>
+    <div className="max-w-4xl">
       <PageHeader
         title="Visits"
         subtitle="Recent visits across your clinic"

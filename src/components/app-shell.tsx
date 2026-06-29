@@ -111,9 +111,7 @@ export function AppShell({
 
         {/* Content — full width, extra bottom padding on mobile for the tab bar */}
         <main className="min-h-[calc(100vh-4rem)] w-full min-w-0 flex-1 p-4 pb-24 sm:p-6 md:pb-8 lg:p-8">
-          {/* Wide but bounded + left-aligned: fills normal laptops, avoids the
-              over-stretched look on large monitors, and keeps lists readable. */}
-          <div className="w-full max-w-6xl">{children}</div>
+          {children}
         </main>
       </div>
 

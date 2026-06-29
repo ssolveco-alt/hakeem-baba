@@ -58,8 +58,17 @@ export function PatientProfileClient({ id }: { id: string }) {
     router.push("/patients");
   }
 
+  async function deleteVisit(visitId: string) {
+    // Remove the visit and its nuskha links from the local DB (syncs on reconnect).
+    const allLinks = await db?.visit_nuskhas.find().exec();
+    for (const l of (allLinks ?? []).filter((x: any) => x.visit_id === visitId)) await l.remove();
+    const vd = await db?.visits.findOne(visitId).exec();
+    await vd?.remove();
+    toast.success("Visit deleted");
+  }
+
   return (
-    <div className="space-y-6">
+    <div className="max-w-4xl space-y-6">
       <PageHeader
         title={patient.name}
         subtitle={patient.patient_code || "code pending sync"}
@@ -108,7 +117,7 @@ export function PatientProfileClient({ id }: { id: string }) {
             </CardContent>
           </Card>
         ) : (
-          <div className="space-y-4">
+          <div className="space-y-6">
             {visits.map((v) => {
               const vn = links
                 .filter((l) => l.visit_id === v.id)
@@ -116,7 +125,7 @@ export function PatientProfileClient({ id }: { id: string }) {
                 .filter(Boolean) as Nuskha[];
               return (
                 <Card key={v.id}>
-                  <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+                  <CardHeader className="flex-row flex-wrap items-center justify-between gap-2 space-y-0">
                     <CardTitle className="flex items-center gap-2">
                       <FileText className="h-5 w-5 text-primary" />
                       {v.disease || "Visit"}
@@ -124,6 +133,14 @@ export function PatientProfileClient({ id }: { id: string }) {
                     <div className="flex items-center gap-2">
                       <Badge variant="muted">{formatDate(v.visit_date)}</Badge>
                       {v.fee ? <Badge variant="success">{formatCurrency(v.fee)}</Badge> : null}
+                      <Link href={`/visits/${v.id}/edit`}>
+                        <Button variant="ghost" size="icon" aria-label="Edit visit">
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                      {session.role !== "assistant" && (
+                        <ConfirmDelete iconOnly action={() => deleteVisit(v.id)} message="Delete this visit?" />
+                      )}
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
