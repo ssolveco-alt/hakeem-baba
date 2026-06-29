@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Save, ArrowLeft, Search, Check, User, FileText, Loader2 } from "lucide-react";
+import { Save, ArrowLeft, Search, Check, User, FileText, Loader2, Plus } from "lucide-react";
 import type { Patient, Nuskha } from "@/lib/types";
 import { useDB, useSession, useRxData } from "@/lib/offline/provider";
 import { cn } from "@/lib/utils";
@@ -13,8 +13,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
 import { Field } from "@/components/ui/field";
 import { Badge } from "@/components/ui/badge";
-import { ImageUpload } from "@/components/image-upload";
 import { OfflineImage } from "@/components/offline-image";
+import { Modal } from "@/components/ui/modal";
+import { NuskhaQuickCreate } from "./nuskha-quick-create";
 
 export function VisitForm({ preselectedId }: { preselectedId?: string }) {
   const router = useRouter();
@@ -27,11 +28,24 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
   const [patientId, setPatientId] = useState<string | null>(preselectedId ?? null);
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [newImage, setNewImage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [showCreate, setShowCreate] = useState(false);
+  const [nuskhaQuery, setNuskhaQuery] = useState("");
+
+  function onNuskhaCreated(id: string) {
+    setSelected((prev) => new Set(prev).add(id)); // auto-select the new nuskha
+    setShowCreate(false);
+  }
 
   const patient = patients.find((p) => p.id === patientId) ?? null;
   const activeNuskhas = useMemo(() => nuskhas.filter((n) => n.status === "active"), [nuskhas]);
+  const shownNuskhas = useMemo(() => {
+    const q = nuskhaQuery.trim().toLowerCase();
+    const list = q
+      ? activeNuskhas.filter((n) => n.name?.toLowerCase().includes(q) || n.category?.toLowerCase().includes(q))
+      : activeNuskhas;
+    return list.slice(0, 60); // cap rendered items for large libraries
+  }, [activeNuskhas, nuskhaQuery]);
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,22 +94,6 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
       });
 
       const nuskhaIds = new Set(selected);
-      if (newImage) {
-        const nid = crypto.randomUUID();
-        await db.nuskhas.insert({
-          id: nid,
-          clinic_id: session.clinicId,
-          name: str("disease") || "Visit Nuskha",
-          category: "General",
-          description: null,
-          image_url: newImage,
-          notes: null,
-          status: "active",
-          created_at: now,
-          updated_at: now,
-        });
-        nuskhaIds.add(nid);
-      }
       for (const nid of nuskhaIds) {
         await db.visit_nuskhas.insert({
           id: crypto.randomUUID(),
@@ -118,6 +116,7 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
   const today = new Date().toISOString().slice(0, 10);
 
   return (
+    <>
     <form onSubmit={onSubmit} className="space-y-6">
       {/* Patient picker */}
       <Card>
@@ -188,14 +187,26 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
       {/* Assign nuskha */}
       <Card>
         <CardContent className="space-y-4 pt-6">
-          <div>
-            <h2 className="text-lg font-semibold">Assign Nuskha</h2>
-            <p className="text-sm text-muted-foreground">Choose existing nuskhas, and/or upload a new one (needs internet).</p>
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="text-lg font-semibold">Assign Nuskha</h2>
+              <p className="text-sm text-muted-foreground">Select one or more, or create a new one.</p>
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={() => setShowCreate(true)}>
+              <Plus /> New Nuskha
+            </Button>
           </div>
 
-          {activeNuskhas.length > 0 && (
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
-              {activeNuskhas.map((n) => {
+          {activeNuskhas.length > 6 && (
+            <div className="relative">
+              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Input className="pl-12" placeholder="Search your nuskhas…" value={nuskhaQuery} onChange={(e) => setNuskhaQuery(e.target.value)} />
+            </div>
+          )}
+
+          {shownNuskhas.length > 0 ? (
+            <div className="grid max-h-80 grid-cols-2 gap-3 overflow-y-auto sm:grid-cols-3">
+              {shownNuskhas.map((n) => {
                 const active = selected.has(n.id);
                 return (
                   <button type="button" key={n.id} onClick={() => toggle(n.id)} className={cn("relative flex items-center gap-2 rounded-lg border-2 p-2 text-left transition-colors", active ? "border-primary bg-accent" : "border-input hover:border-primary")}>
@@ -212,11 +223,11 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
                 );
               })}
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              {nuskhaQuery ? "No nuskhas match." : "No nuskhas yet — create one with the button above."}
+            </p>
           )}
-
-          <Field label="Or upload a new nuskha image">
-            <ImageUpload bucket="nuskha-images" clinicId={session.clinicId} onUploaded={setNewImage} />
-          </Field>
 
           {selected.size > 0 && <Badge variant="success">{selected.size} nuskha(s) selected</Badge>}
         </CardContent>
@@ -230,6 +241,11 @@ export function VisitForm({ preselectedId }: { preselectedId?: string }) {
           <ArrowLeft /> Cancel
         </Button>
       </div>
-    </form>
+      </form>
+
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Nuskha">
+        <NuskhaQuickCreate onCreated={onNuskhaCreated} />
+      </Modal>
+    </>
   );
 }
