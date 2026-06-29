@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "HakeemCare",
     short_name: "HakeemCare",
     description: "Simple digital record-keeping for Hakeems — patients, visits & nuskhas.",
-    start_url: "/",
+    start_url: "/dashboard",
     display: "standalone",
     orientation: "portrait",
     background_color: "#ffffff",

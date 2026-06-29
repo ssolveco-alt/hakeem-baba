@@ -1,10 +1,9 @@
+"use client";
+
+import { useParams } from "next/navigation";
 import { PatientProfileClient } from "../patient-profile-client";
 
-export default async function PatientProfilePage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
+export default function PatientProfilePage() {
+  const { id } = useParams<{ id: string }>();
   return <PatientProfileClient id={id} />;
 }

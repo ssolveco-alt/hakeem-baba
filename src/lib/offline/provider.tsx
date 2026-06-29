@@ -17,6 +17,8 @@ export interface ClientSession {
   clinicId: string;
   role: string;
   name: string | null;
+  clinicName?: string | null;
+  clinicLogo?: string | null;
 }
 
 interface OfflineCtx {
