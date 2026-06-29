@@ -23,7 +23,7 @@ export function VisitsClient() {
   }, [visits, patients]);
 
   return (
-    <div className="max-w-4xl">
+    <div>
       <PageHeader
         title="Visits"
         subtitle="Recent visits across your clinic"
@@ -43,10 +43,10 @@ export function VisitsClient() {
           <CardContent className="py-12 text-center text-muted-foreground">No visits yet.</CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-4 sm:grid-cols-2">
           {rows.map((v) => (
             <Link key={v.id} href={v.patient ? `/patients/${v.patient.id}` : "#"}>
-              <Card className="transition-colors hover:border-primary hover:bg-accent">
+              <Card className="h-full transition-colors hover:border-primary hover:bg-accent">
                 <CardContent className="flex items-center justify-between gap-3 p-4">
                   <div className="flex min-w-0 items-center gap-3">
                     <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-secondary text-primary">
