@@ -5,6 +5,7 @@ import Link from "next/link";
 import { CalendarPlus, FileText, Loader2 } from "lucide-react";
 import type { Visit, Patient } from "@/lib/types";
 import { useRxData } from "@/lib/offline/provider";
+import { useT } from "@/lib/i18n/provider";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -12,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 
 export function VisitsClient() {
+  const t = useT();
   const { data: visits, loading } = useRxData<Visit>("visits", (c) => c.find());
   const { data: patients } = useRxData<Patient>("patients", (c) => c.find());
 
@@ -25,22 +27,22 @@ export function VisitsClient() {
   return (
     <div>
       <PageHeader
-        title="Visits"
-        subtitle="Recent visits across your clinic"
+        title={t("visits.title")}
+        subtitle={t("visits.subtitle")}
         action={
           <Link href="/visits/new">
-            <Button><CalendarPlus /> New Visit</Button>
+            <Button><CalendarPlus /> {t("visits.new")}</Button>
           </Link>
         }
       />
 
       {loading ? (
         <div className="flex items-center justify-center py-12 text-muted-foreground">
-          <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
+          <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("common.loading")}
         </div>
       ) : rows.length === 0 ? (
         <Card>
-          <CardContent className="py-12 text-center text-muted-foreground">No visits yet.</CardContent>
+          <CardContent className="py-12 text-center text-muted-foreground">{t("visits.none")}</CardContent>
         </Card>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2">

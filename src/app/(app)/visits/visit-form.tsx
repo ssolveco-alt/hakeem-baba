@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Save, ArrowLeft, Search, Check, User, FileText, Loader2, Plus } from "lucide-react";
 import type { Patient, Nuskha, Visit } from "@/lib/types";
 import { useDB, useSession, useRxData } from "@/lib/offline/provider";
+import { useT } from "@/lib/i18n/provider";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +30,7 @@ export function VisitForm({
   const router = useRouter();
   const db = useDB();
   const session = useSession();
+  const t = useT();
   const isEdit = !!visit;
   const lockedPatient = !!preselectedId || isEdit;
 
@@ -76,7 +78,7 @@ export function VisitForm({
   async function onSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (!db) return toast.error("Still loading — try again");
-    if (!patient) return toast.error("Please choose a patient first");
+    if (!patient) return toast.error(t("visits.choosePatient"));
 
     const fd = new FormData(e.currentTarget);
     const str = (k: string) => {
@@ -132,7 +134,7 @@ export function VisitForm({
         if (!selected.has(l.nuskha_id)) await l.remove();
       }
 
-      toast.success("Visit saved");
+      toast.success(t("visits.saved"));
       router.push(`/patients/${patient.id}`);
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Could not save visit");
@@ -149,7 +151,7 @@ export function VisitForm({
       {/* Patient picker */}
       <Card>
         <CardContent className="pt-6">
-          <Field label="Patient" required>
+          <Field label={t("visits.patient")} required>
             {patient ? (
               <div className="flex items-center justify-between rounded-lg border-2 border-primary bg-accent p-4">
                 <div className="flex items-center gap-3">
@@ -163,15 +165,15 @@ export function VisitForm({
                 </div>
                 {!lockedPatient && (
                   <Button type="button" variant="ghost" size="sm" onClick={() => setPatientId(null)}>
-                    Change
+                    {t("visits.change")}
                   </Button>
                 )}
               </div>
             ) : (
               <div className="space-y-2">
                 <div className="relative">
-                  <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-                  <Input className="pl-12" placeholder="Search patient by name or phone…" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
+                  <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+                  <Input className="ps-12" placeholder={t("visits.searchPatient")} value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
                 </div>
                 {matches.length > 0 ? (
                   // Scrolls once there are more than ~3 results.
@@ -184,7 +186,7 @@ export function VisitForm({
                     ))}
                   </div>
                 ) : (
-                  <p className="px-1 text-sm text-muted-foreground">No patients match.</p>
+                  <p className="px-1 text-sm text-muted-foreground">{t("visits.noPatientMatch")}</p>
                 )}
               </div>
             )}
@@ -196,20 +198,20 @@ export function VisitForm({
       <Card>
         <CardContent className="space-y-5 pt-6">
           <div className="grid gap-5 sm:grid-cols-2">
-            <Field label="Visit Date" htmlFor="visit_date">
+            <Field label={t("visits.date")} htmlFor="visit_date">
               <Input id="visit_date" name="visit_date" type="date" defaultValue={visit?.visit_date ?? today} />
             </Field>
-            <Field label="Fee" htmlFor="fee">
+            <Field label={t("visits.fee")} htmlFor="fee">
               <Input id="fee" name="fee" type="number" min={0} step="1" placeholder="0" defaultValue={visit?.fee ?? ""} />
             </Field>
           </div>
-          <Field label="Disease" htmlFor="disease">
-            <Input id="disease" name="disease" placeholder="e.g. Joint pain" defaultValue={visit?.disease ?? ""} />
+          <Field label={t("visits.disease")} htmlFor="disease">
+            <Input id="disease" name="disease" placeholder={t("visits.diseasePlaceholder")} defaultValue={visit?.disease ?? ""} />
           </Field>
-          <Field label="Symptoms" htmlFor="symptoms">
+          <Field label={t("visits.symptoms")} htmlFor="symptoms">
             <Textarea id="symptoms" name="symptoms" defaultValue={visit?.symptoms ?? ""} />
           </Field>
-          <Field label="Notes" htmlFor="notes">
+          <Field label={t("visits.notes")} htmlFor="notes">
             <Textarea id="notes" name="notes" defaultValue={visit?.notes ?? ""} />
           </Field>
         </CardContent>
@@ -220,18 +222,18 @@ export function VisitForm({
         <CardContent className="space-y-4 pt-6">
           <div className="flex flex-wrap items-start justify-between gap-2">
             <div>
-              <h2 className="text-lg font-semibold">Assign Nuskha</h2>
-              <p className="text-sm text-muted-foreground">Select one or more, or create a new one.</p>
+              <h2 className="text-lg font-semibold">{t("visits.assignNuskha")}</h2>
+              <p className="text-sm text-muted-foreground">{t("visits.assignHint")}</p>
             </div>
             <Button type="button" variant="outline" size="sm" onClick={() => setShowCreate(true)}>
-              <Plus /> New Nuskha
+              <Plus /> {t("visits.newNuskha")}
             </Button>
           </div>
 
           {activeNuskhas.length > 6 && (
             <div className="relative">
-              <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-              <Input className="pl-12" placeholder="Search your nuskhas…" value={nuskhaQuery} onChange={(e) => setNuskhaQuery(e.target.value)} />
+              <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+              <Input className="ps-12" placeholder={t("visits.searchNuskhas")} value={nuskhaQuery} onChange={(e) => setNuskhaQuery(e.target.value)} />
             </div>
           )}
 
@@ -256,25 +258,25 @@ export function VisitForm({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              {nuskhaQuery ? "No nuskhas match." : "No nuskhas yet — create one with the button above."}
+              {nuskhaQuery ? t("visits.noNuskhaMatch") : t("visits.noNuskhas")}
             </p>
           )}
 
-          {selected.size > 0 && <Badge variant="success">{selected.size} nuskha(s) selected</Badge>}
+          {selected.size > 0 && <Badge variant="success">{selected.size} {t("visits.selectedCount")}</Badge>}
         </CardContent>
       </Card>
 
       <div className="flex gap-3">
         <Button type="submit" size="lg" disabled={saving}>
-          {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? "Saving…" : isEdit ? "Update Visit" : "Save Visit"}
+          {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? t("common.saving") : isEdit ? t("visits.update") : t("visits.save")}
         </Button>
         <Button type="button" variant="outline" size="lg" onClick={() => router.back()}>
-          <ArrowLeft /> Cancel
+          <ArrowLeft /> {t("common.cancel")}
         </Button>
       </div>
       </form>
 
-      <Modal open={showCreate} onClose={() => setShowCreate(false)} title="New Nuskha">
+      <Modal open={showCreate} onClose={() => setShowCreate(false)} title={t("visits.newNuskha")}>
         <NuskhaQuickCreate onCreated={onNuskhaCreated} />
       </Modal>
     </>

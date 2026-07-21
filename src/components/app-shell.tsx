@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { SignOutButton } from "@/components/sign-out-button";
 import { SyncIndicator } from "@/components/sync-indicator";
 import { OfflineImage } from "@/components/offline-image";
+import { LanguageToggle } from "@/components/language-toggle";
 
 export interface NavItem {
   href: string;
@@ -61,6 +62,7 @@ export function AppShell({
           </span>
         </Link>
         <div className="flex items-center gap-3">
+          <LanguageToggle />
           <SyncIndicator />
           <div className="hidden text-right sm:block">
             <p className="text-sm font-semibold leading-tight">{user.name || "User"}</p>

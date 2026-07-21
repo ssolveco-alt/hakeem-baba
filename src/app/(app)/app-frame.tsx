@@ -13,13 +13,14 @@ import {
 import { createClient } from "@/lib/supabase/client";
 import { OfflineProvider, type ClientSession } from "@/lib/offline/provider";
 import { AppShell, type NavItem } from "@/components/app-shell";
+import { useT } from "@/lib/i18n/provider";
 
-const NAV: NavItem[] = [
-  { href: "/dashboard", label: "Dashboard", icon: <LayoutDashboard /> },
-  { href: "/patients", label: "Patients", icon: <Users /> },
-  { href: "/visits", label: "Visits", icon: <CalendarPlus /> },
-  { href: "/nuskhas", label: "Nuskha Library", icon: <BookImage /> },
-  { href: "/settings", label: "Settings", icon: <Settings /> },
+const NAV_DEF = [
+  { href: "/dashboard", key: "nav.dashboard", icon: <LayoutDashboard /> },
+  { href: "/patients", key: "nav.patients", icon: <Users /> },
+  { href: "/visits", key: "nav.visits", icon: <CalendarPlus /> },
+  { href: "/nuskhas", key: "nav.nuskhas", icon: <BookImage /> },
+  { href: "/settings", key: "nav.settings", icon: <Settings /> },
 ];
 
 const key = (uid: string) => `hakeemcare.profile.${uid}`;
@@ -29,6 +30,7 @@ const key = (uid: string) => `hakeemcare.profile.${uid}`;
 // server. Refreshes the profile from Supabase whenever online.
 export function AppFrame({ children }: { children: React.ReactNode }) {
   const router = useRouter();
+  const t = useT();
   const [session, setSession] = useState<ClientSession | null>(null);
   const [status, setStatus] = useState<"loading" | "ready" | "redirect">("loading");
 
@@ -101,12 +103,13 @@ export function AppFrame({ children }: { children: React.ReactNode }) {
   if (status !== "ready" || !session) {
     return (
       <div className="flex min-h-screen items-center justify-center text-muted-foreground">
-        <Loader2 className="mr-2 h-6 w-6 animate-spin" /> Loading…
+        <Loader2 className="mr-2 h-6 w-6 animate-spin" /> {t("common.loading")}
       </div>
     );
   }
 
-  const items = session.role === "assistant" ? NAV.filter((i) => i.href !== "/settings") : NAV;
+  const nav: NavItem[] = NAV_DEF.map((n) => ({ href: n.href, label: t(n.key), icon: n.icon }));
+  const items = session.role === "assistant" ? nav.filter((i) => i.href !== "/settings") : nav;
 
   return (
     <OfflineProvider session={session}>

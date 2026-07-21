@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Search, Phone, User, UserPlus, Loader2 } from "lucide-react";
 import type { Patient } from "@/lib/types";
 import { useRxData } from "@/lib/offline/provider";
+import { useT } from "@/lib/i18n/provider";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +15,7 @@ import { Badge } from "@/components/ui/badge";
 export function PatientsClient() {
   const [query, setQuery] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
+  const t = useT();
 
   // Reactive local query — instant, works fully offline. Sort/filter in JS
   // (per-clinic data is small; avoids needing RxDB indexes).
@@ -38,12 +40,12 @@ export function PatientsClient() {
   return (
     <div>
       <PageHeader
-        title="Patients"
-        subtitle="Find a patient instantly — even offline"
+        title={t("patients.title")}
+        subtitle={t("patients.subtitle")}
         action={
           <Link href="/patients/new">
             <Button>
-              <UserPlus /> New Patient
+              <UserPlus /> {t("patients.new")}
             </Button>
           </Link>
         }
@@ -51,11 +53,11 @@ export function PatientsClient() {
 
       <div className="space-y-4">
         <div className="relative">
-          <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+          <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
             ref={inputRef}
-            className="h-14 pl-12 text-lg"
-            placeholder="Search by name, phone, or code…"
+            className="h-14 ps-12 text-lg"
+            placeholder={t("patients.searchPlaceholder")}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
@@ -63,12 +65,12 @@ export function PatientsClient() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
+            <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("common.loading")}
           </div>
         ) : results.length === 0 ? (
           <Card>
             <CardContent className="py-12 text-center text-muted-foreground">
-              No patients found.
+              {t("patients.none")}
             </CardContent>
           </Card>
         ) : (

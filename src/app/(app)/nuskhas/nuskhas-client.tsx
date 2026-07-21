@@ -6,6 +6,7 @@ import { Search, FileText, Plus, Loader2 } from "lucide-react";
 import type { Nuskha } from "@/lib/types";
 import { NUSKHA_CATEGORIES } from "@/lib/types";
 import { useRxData } from "@/lib/offline/provider";
+import { useT } from "@/lib/i18n/provider";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ import { OfflineImage } from "@/components/offline-image";
 export function NuskhasClient() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("");
+  const t = useT();
   const { data, loading } = useRxData<Nuskha>("nuskhas", (c) => c.find());
 
   const results = useMemo(() => {
@@ -32,11 +34,11 @@ export function NuskhasClient() {
   return (
     <div>
       <PageHeader
-        title="Nuskha Library"
-        subtitle="Your own handwritten nuskhas — available offline"
+        title={t("nuskhas.title")}
+        subtitle={t("nuskhas.subtitle")}
         action={
           <Link href="/nuskhas/new">
-            <Button><Plus /> Add Nuskha</Button>
+            <Button><Plus /> {t("nuskhas.add")}</Button>
           </Link>
         }
       />
@@ -44,11 +46,11 @@ export function NuskhasClient() {
       <div className="space-y-4">
         <div className="flex flex-col gap-3 sm:flex-row">
           <div className="relative flex-1">
-            <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-12" placeholder="Search nuskhas by name…" value={query} onChange={(e) => setQuery(e.target.value)} />
+            <Search className="pointer-events-none absolute start-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Input className="ps-12" placeholder={t("nuskhas.searchPlaceholder")} value={query} onChange={(e) => setQuery(e.target.value)} />
           </div>
           <Select className="sm:w-56" value={category} onChange={(e) => setCategory(e.target.value)}>
-            <option value="">All categories</option>
+            <option value="">{t("nuskhas.allCategories")}</option>
             {NUSKHA_CATEGORIES.map((c) => (
               <option key={c} value={c}>{c}</option>
             ))}
@@ -57,11 +59,11 @@ export function NuskhasClient() {
 
         {loading ? (
           <div className="flex items-center justify-center py-12 text-muted-foreground">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
+            <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("common.loading")}
           </div>
         ) : results.length === 0 ? (
           <Card>
-            <CardContent className="py-12 text-center text-muted-foreground">No nuskhas found.</CardContent>
+            <CardContent className="py-12 text-center text-muted-foreground">{t("nuskhas.none")}</CardContent>
           </Card>
         ) : (
           <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">

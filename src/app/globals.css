@@ -39,3 +39,23 @@ body {
   h1 { @apply text-2xl font-bold tracking-tight; }
   h2 { @apply text-xl font-semibold; }
 }
+
+/* Urdu mode: Nastaliq typeface needs extra line-height to render correctly. */
+.font-urdu,
+.font-urdu body {
+  font-family: "Noto Nastaliq Urdu", "Jameel Noori Nastaleeq", "Noto Naskh Arabic", serif;
+  line-height: 2.1;
+}
+
+.font-urdu input,
+.font-urdu textarea,
+.font-urdu select,
+.font-urdu button {
+  font-family: inherit;
+}
+
+/* Keep numbers/latin readable inside Urdu text */
+.font-urdu .latin {
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}

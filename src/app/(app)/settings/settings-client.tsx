@@ -7,6 +7,8 @@ import { Save, Loader2 } from "lucide-react";
 import type { Clinic } from "@/lib/types";
 import { createClient } from "@/lib/supabase/client";
 import { useSession, useRxData, useOffline } from "@/lib/offline/provider";
+import { useT } from "@/lib/i18n/provider";
+import { LanguageToggle } from "@/components/language-toggle";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +20,7 @@ import { ImageUpload } from "@/components/image-upload";
 export function SettingsClient() {
   const router = useRouter();
   const session = useSession();
+  const t = useT();
   const { online } = useOffline();
   const { data, loading } = useRxData<Clinic>("clinics", (c) => c.find({ selector: { id: session.clinicId } }), [session.clinicId]);
   const clinic = data[0];
@@ -26,12 +29,12 @@ export function SettingsClient() {
   const [saving, setSaving] = useState(false);
 
   if (session.role !== "hakeem") {
-    return <p className="py-16 text-center text-muted-foreground">Only the clinic owner can change settings.</p>;
+    return <p className="py-16 text-center text-muted-foreground">{t("settings.ownerOnly")}</p>;
   }
   if (loading) {
     return (
       <div className="flex items-center justify-center py-16 text-muted-foreground">
-        <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading…
+        <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("common.loading")}
       </div>
     );
   }
@@ -74,32 +77,35 @@ export function SettingsClient() {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Clinic Settings" subtitle="Update your clinic details" />
+      <PageHeader title={t("settings.title")} subtitle={t("settings.subtitle")} />
       <Card>
         <CardContent className="pt-6">
           <form onSubmit={onSubmit} className="space-y-5">
-            <Field label="Clinic Logo">
+            <Field label={t("settings.language")}>
+              <LanguageToggle />
+            </Field>
+            <Field label={t("settings.logo")}>
               <ImageUpload bucket="clinic-logos" clinicId={session.clinicId} defaultUrl={clinic?.logo} onUploaded={setLogo} />
             </Field>
             <div className="grid gap-5 sm:grid-cols-2">
-              <Field label="Clinic Name" htmlFor="name" required>
+              <Field label={t("settings.clinicName")} htmlFor="name" required>
                 <Input id="name" name="name" defaultValue={clinic?.name} required />
               </Field>
-              <Field label="Doctor / Owner Name" htmlFor="owner_name">
+              <Field label={t("settings.ownerName")} htmlFor="owner_name">
                 <Input id="owner_name" name="owner_name" defaultValue={clinic?.owner_name ?? ""} />
               </Field>
-              <Field label="Phone" htmlFor="phone">
+              <Field label={t("settings.phone")} htmlFor="phone">
                 <Input id="phone" name="phone" defaultValue={clinic?.phone ?? ""} />
               </Field>
             </div>
-            <Field label="Address" htmlFor="address">
+            <Field label={t("settings.address")} htmlFor="address">
               <Textarea id="address" name="address" defaultValue={clinic?.address ?? ""} />
             </Field>
             <Button type="submit" size="lg" disabled={saving}>
-              {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? "Saving…" : "Save Settings"}
+              {saving ? <Loader2 className="animate-spin" /> : <Save />} {saving ? t("common.saving") : t("settings.save")}
             </Button>
             {!online && (
-              <p className="text-sm text-amber-700">You are offline — settings can be viewed but not saved.</p>
+              <p className="text-sm text-amber-700">{t("settings.offlineNote")}</p>
             )}
           </form>
         </CardContent>
