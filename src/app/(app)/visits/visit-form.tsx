@@ -59,10 +59,10 @@ export function VisitForm({
 
   const matches = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return patients.slice(0, 8);
-    return patients
-      .filter((p) => p.name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q))
-      .slice(0, 8);
+    const list = q
+      ? patients.filter((p) => p.name?.toLowerCase().includes(q) || p.phone?.toLowerCase().includes(q))
+      : patients;
+    return list.slice(0, 50); // list scrolls, so show plenty
   }, [patients, query]);
 
   function toggle(id: string) {
@@ -173,15 +173,18 @@ export function VisitForm({
                   <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
                   <Input className="pl-12" placeholder="Search patient by name or phone…" value={query} onChange={(e) => setQuery(e.target.value)} autoFocus />
                 </div>
-                {matches.length > 0 && (
-                  <div className="divide-y rounded-lg border">
+                {matches.length > 0 ? (
+                  // Scrolls once there are more than ~3 results.
+                  <div className="max-h-52 divide-y overflow-y-auto rounded-lg border">
                     {matches.map((p) => (
-                      <button type="button" key={p.id} onClick={() => setPatientId(p.id)} className="flex w-full items-center justify-between p-3 text-left hover:bg-accent">
-                        <span className="font-medium">{p.name}</span>
-                        <span className="text-sm text-muted-foreground">{p.phone}</span>
+                      <button type="button" key={p.id} onClick={() => setPatientId(p.id)} className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-accent">
+                        <span className="truncate font-medium">{p.name}</span>
+                        <span className="shrink-0 text-sm text-muted-foreground">{p.phone}</span>
                       </button>
                     ))}
                   </div>
+                ) : (
+                  <p className="px-1 text-sm text-muted-foreground">No patients match.</p>
                 )}
               </div>
             )}
