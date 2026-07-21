@@ -7,6 +7,7 @@ import type { Nuskha } from "@/lib/types";
 import { NUSKHA_CATEGORIES } from "@/lib/types";
 import { useRxData } from "@/lib/offline/provider";
 import { useT } from "@/lib/i18n/provider";
+import { useInfiniteList } from "@/lib/hooks/use-infinite-list";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,6 +31,12 @@ export function NuskhasClient() {
         (!category || n.category === category)
     );
   }, [data, query, category]);
+
+  // Render in batches; more load as you scroll.
+  const { visible, sentinelRef, hasMore, shown, total } = useInfiniteList(results, {
+    pageSize: 24,
+    resetKey: `${query}|${category}`,
+  });
 
   return (
     <div>
@@ -66,8 +73,9 @@ export function NuskhasClient() {
             <CardContent className="py-12 text-center text-muted-foreground">{t("nuskhas.none")}</CardContent>
           </Card>
         ) : (
+          <>
           <div className="grid gap-4 grid-cols-[repeat(auto-fill,minmax(150px,1fr))]">
-            {results.map((n) => (
+            {visible.map((n) => (
               <Link key={n.id} href={`/nuskhas/${n.id}`}>
                 <Card className="overflow-hidden transition-colors hover:border-primary">
                   <div className="aspect-square bg-secondary">
@@ -87,6 +95,16 @@ export function NuskhasClient() {
               </Link>
             ))}
           </div>
+
+          {hasMore && (
+            <div ref={sentinelRef} className="flex items-center justify-center py-6 text-muted-foreground">
+              <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("list.loadingMore")}
+            </div>
+          )}
+          <p className="pt-2 text-center text-sm text-muted-foreground">
+            {t("list.showing")} {shown} / {total}
+          </p>
+          </>
         )}
       </div>
     </div>

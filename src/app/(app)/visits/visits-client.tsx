@@ -6,6 +6,7 @@ import { CalendarPlus, FileText, Loader2 } from "lucide-react";
 import type { Visit, Patient } from "@/lib/types";
 import { useRxData } from "@/lib/offline/provider";
 import { useT } from "@/lib/i18n/provider";
+import { useInfiniteList } from "@/lib/hooks/use-infinite-list";
 import { formatDate, formatCurrency } from "@/lib/utils";
 import { PageHeader } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,8 @@ export function VisitsClient() {
       .sort((a, b) => (a.visit_date < b.visit_date ? 1 : -1))
       .map((v) => ({ ...v, patient: byId.get(v.patient_id) }));
   }, [visits, patients]);
+
+  const { visible, sentinelRef, hasMore, shown, total } = useInfiniteList(rows, { pageSize: 24 });
 
   return (
     <div>
@@ -45,8 +48,9 @@ export function VisitsClient() {
           <CardContent className="py-12 text-center text-muted-foreground">{t("visits.none")}</CardContent>
         </Card>
       ) : (
+        <>
         <div className="grid gap-4 sm:grid-cols-2">
-          {rows.map((v) => (
+          {visible.map((v) => (
             <Link key={v.id} href={v.patient ? `/patients/${v.patient.id}` : "#"}>
               <Card className="h-full transition-colors hover:border-primary hover:bg-accent">
                 <CardContent className="flex items-center justify-between gap-3 p-4">
@@ -68,6 +72,16 @@ export function VisitsClient() {
             </Link>
           ))}
         </div>
+
+        {hasMore && (
+          <div ref={sentinelRef} className="flex items-center justify-center py-6 text-muted-foreground">
+            <Loader2 className="me-2 h-5 w-5 animate-spin" /> {t("list.loadingMore")}
+          </div>
+        )}
+        <p className="pt-2 text-center text-sm text-muted-foreground">
+          {t("list.showing")} {shown} / {total}
+        </p>
+        </>
       )}
     </div>
   );

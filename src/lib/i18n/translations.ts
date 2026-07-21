@@ -28,6 +28,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     "common.cannotUndo": "This cannot be undone. Are you sure?",
     "common.notFound": "Not found.",
     "common.required": "required",
+    "list.showing": "Showing",
+    "list.loadingMore": "Loading more…",
 
     // dashboard
     "dash.greeting": "Assalam-o-Alaikum",
@@ -170,6 +172,8 @@ export const translations: Record<Lang, Record<string, string>> = {
     "common.cannotUndo": "یہ واپس نہیں ہو سکتا۔ کیا آپ کو یقین ہے؟",
     "common.notFound": "نہیں ملا۔",
     "common.required": "ضروری",
+    "list.showing": "دکھایا جا رہا ہے",
+    "list.loadingMore": "مزید لوڈ ہو رہا ہے…",
 
     // dashboard
     "dash.greeting": "السلام علیکم",
